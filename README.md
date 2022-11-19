@@ -17,9 +17,7 @@ by Drew Bozarth &amp; Romtin Rezvani
 
 ### vmmgr.c
 
-### addresses.txt
-
-### simpletest.txt
+### sampleOutput.txt
 
 ## Known Errors:
 
@@ -32,7 +30,8 @@ by Drew Bozarth &amp; Romtin Rezvani
 ## Instructions:
 
 Change directory into where ever the files are "cd \_\_\_\_"
+Download BACKING_STORE.bin, and addresses.txt from assignment files
 Check to make sure the files are there with "ls"
 Compile the program with "gcc vmmgr.c -o vmmgr"
-Run Simple Program test with "./vmmgr simpletest.txt"
 Run Full Program with "./vmmgr addresses.txt"
+Output is printed to terminal and to sampleOutput.txt
