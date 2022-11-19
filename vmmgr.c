@@ -1,200 +1,128 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
 #include <unistd.h> 
-/*------TODO---------
-Structure:
-  Read file containing logical addresses
-  Use TLB and Page Table
-    Translate logical address to physical address
-Read in
-  File contains 32-bit ints
-  Mask the right most 16 bits
-    Divided into 8 bit page number (8-15)
-                 8 bit offset (0-7)
-Page Table - 2^8 entries
- 
-TLB - 16 Entries
-Page Size - 2^8 bytes
-Frame Size - 2^8 bytes
-Physical memory - 256 frames x 256 frames
-1. Write program that extracts page number and offset from following ints:
-1, 256, 32768, 32769, 128, 65534, 33153
-2. Bypass TLB and implement using page table
-3.  Implement TLB, must have replacement strategy (FIFO or LRU)
---------TODO----------*/
+#include <stdio.h>
+#include <stdbool.h>
+#include <stdlib.h>
 
-
-const int PAGE_TABLE_SIZE = 256;
-const int BUFFER_SIZE = 256;
-const int PHYS_MEM_SIZE = 256;
-const int TLB_SIZE = 16;
+const int tlbSize = 16;
+const int pageTableSize = 256;
+const int physicalMemorySize = 256;
+const int bufferSize = 256;
 
 struct TLB {
-	unsigned char TLBpage[16];
-	unsigned char TLBframe[16];
-	int ind;
+	unsigned char page[16];
+	unsigned char frame[16];
+	int index;
 };
-	
 
 
 
-int readFromDisk (int pageNum, char *PM, int* OF){
-
-	char buffer[BUFFER_SIZE];
+int readDisk(int pageNumber, int* openFrame, char *physicalMemory) {
+	char buffer[bufferSize];
 	memset(buffer, 0, sizeof(buffer));
 
-	FILE *BS;
-	BS = fopen("BACKING_STORE.bin", "rb");
-	if (BS == NULL){
-		printf("File failed to open\n");
-		exit(0);
+	FILE *fileOpen;
+	fileOpen = fopen("BACKING_STORE.bin", "rb");
+	if (fileOpen == NULL) {
+		printf("File could not open, try again");
+	}
+	if (fseek(fileOpen, pageNumber * physicalMemorySize, SEEK_SET) !=0)
+		printf("Error occured in fseek");
+	if (fread(buffer, sizeof(char), physicalMemorySize, fileOpen) == 0)
+		printf("Error occured in fread");
+	
+
+	for(int i = 0; i < physicalMemorySize; i++){
+		*((physicalMemorySize * (*openFrame) + physicalMemory) + i) = buffer[i];
 	}
 	
-//	printf("offset in fseek: %d\n", pageNum*PHYS_MEM_SIZE);
-
-	if (fseek(BS, pageNum * PHYS_MEM_SIZE, SEEK_SET)!=0)
-		printf("error in fseek\n");
-
-	if (fread(buffer, sizeof(char), PHYS_MEM_SIZE, BS)==0)
-		printf("error in fread\n");
-	
-
-	int i = 0;
-	for(i; i < PHYS_MEM_SIZE; i++){
-		*((PM+(*OF)*PHYS_MEM_SIZE)+i) = buffer[i];
-	/*	printf("buffer[%d]=%d\n",i+pageNum*256, buffer[i]);*/
-	}
-	
-	(*OF)++;
-
-	return (*OF)-1;
-//	printf("&d\n ", *((PM+i*n)+j));
-	// i = current row row number, n = elements per row, j = colum num
+	(*openFrame)++;
+	return (*openFrame) - 1;
 }
 
+int findPage(int logicalAddress, struct TLB *tlb, char* pageTable, int* openFrame, char* physicalMemory, int* numHits, int* pageFaults){
 
-
-
-
-int findPage(int logicalAddr, char* PT, struct TLB *tlb,  char* PM, int* OF, int* pageFaults, int* TLBhits){
-
-	unsigned char mask = 0xFF;
+	unsigned char pageNumber;
 	unsigned char offset;
-	unsigned char pageNum;
-	bool TLBhit = false;
-	int frame = 0;
-	int value;
+	bool tlbHit = false;
 	int newFrame = 0;
+	int oldFrame = 0;
+	int val;
+	unsigned char mask = 0xFF;
 
-	printf("Virtual adress: %d\t", logicalAddr);
+	printf("Virtual adress: %d\t", logicalAddress);
 
-	pageNum = (logicalAddr >> 8) & mask;
-//	printf("%X\t", pageNum);	
-
-	offset = logicalAddr & mask;
-//	printf("%X\t", offset);
+	pageNumber = (logicalAddress >> 8) & mask;
+	offset = logicalAddress & mask;
 	
-	//Check if in TLB
-	int i = 0;
-	for (i; i < TLB_SIZE; i++){
-		if(tlb->TLBpage[i] == pageNum){
-			frame = tlb->TLBframe[i];
-			TLBhit = true;
-			(*TLBhits)++;
-		//	printf("TLBhit\t\t");
+	for (int i = 0; i < tlbSize; i++) {
+		if(tlb->page[i] == pageNumber){
+			oldFrame = tlb->frame[i];
+			(*numHits)++;
+			tlbHit = true;
 		}
-			
 	}
 
-	//Check if in PageTable
-	if (TLBhit == false){
-		if (PT[pageNum] != -1){
-		//	printf("Pagehit\t\t");
-		}
+	if (tlbHit == false){
+		if (pageTable[pageNumber] != -1){
 
-		//if not in either read from disk
-		else{
-	//		printf("pageFault\t");
-			newFrame = readFromDisk(pageNum, PM, OF);
-			PT[pageNum] = newFrame;
+		}
+		else {
+			newFrame = readDisk(pageNumber, openFrame, physicalMemory);
 			(*pageFaults)++;
-//			tlb->TLBpage[tlb->ind] = pageNum;
-//			tlb->TLBframe[tlb->ind] = newFrame;
-//			tlb->ind = (tlb->ind + 1)%TLB_SIZE;
+			pageTable[pageNumber] = newFrame;
 		}
-		frame = PT[pageNum];
-		tlb->TLBpage[tlb->ind] = pageNum;
-		tlb->TLBframe[tlb->ind] = PT[pageNum];
-		tlb->ind = (tlb->ind + 1)%TLB_SIZE;
-		
+		oldFrame = pageTable[pageNumber];
+		tlb->page[tlb->index] = pageNumber;
+		tlb->frame[tlb->index] = pageTable[pageNumber];
+		tlb->index = (tlb->index + 1) % tlbSize;
 	}
-	int index = ((unsigned char)frame*PHYS_MEM_SIZE)+offset;
-	value = *(PM+index);
-	printf("Physical address: %d\t Value: %d\n",index, value);	
-
-	
+	int index = ((unsigned char) oldFrame * physicalMemorySize) + offset;
+	val = *(physicalMemory + index);
+	printf("Physical address: %d\t Value: %d\n", index, val);	
 	return 0;
-
-
 }
-
-
-
 
 int main (int argc, char* argv[]){
-	
 	int val;
-	FILE *fd;
-	int openFrame = 0;
-
-	int pageFaults = 0;
-	int TLBhits = 0;
-	int inputCount = 0;
-	
-	float pageFaultRate;
-	float TLBHitRate;
-
-	unsigned char PageTable[PAGE_TABLE_SIZE];
-	memset(PageTable, -1, sizeof(PageTable));	
-
+	FILE *fileOpen;
 	struct TLB tlb;	
-	memset(tlb.TLBpage, -1, sizeof(tlb.TLBpage));
-	memset(tlb.TLBframe, -1, sizeof(tlb.TLBframe));
-	tlb.ind = 0;
 
-	char PhyMem[PHYS_MEM_SIZE][PHYS_MEM_SIZE]; 
+	int numHits = 0;
+	int inputCount = 0;
+	int pageFaults = 0;
+	int openFrame = 0;
+	
+	float hitRate;
+	float pfRate;
+
+	char physicalMemory[physicalMemorySize][physicalMemorySize]; 
+	char pageTable[pageTableSize];
+
+	memset(pageTable, -1, sizeof(pageTable));	
+	memset(tlb.page, -1, sizeof(tlb.page));
+	memset(tlb.frame, -1, sizeof(tlb.frame));
+	tlb.index = 0;
 
 	if (argc < 2){
-		printf("Not enough arguments\nProgram Exiting\n");
-		exit(0);
+		printf("Not enough arguments, please enter more");
 	}
 
-	fd = fopen(argv[1], "r");
-	if (fd == NULL){
-		printf("File failed to open\n");
-		exit(0);
+	fileOpen = fopen(argv[1], "r");
+	if (fileOpen == NULL){
+		printf("File unable to open");
 	}
 
-
-	//printf("Value\tPageNum\tOffset\n ");	
-	while (fscanf(fd, "%d", &val)==1){
-	//	printf("%d\t", val);
-		findPage(val, PageTable, &tlb, (char*)PhyMem, &openFrame, &pageFaults, &TLBhits);
+	while (fscanf(fileOpen, "%d", &val) == 1){
+		findPage(val, &tlb, pageTable, &openFrame, (char*)physicalMemory, &numHits, &pageFaults);
 		inputCount++;
 	}
 
-//	readFromDisk(0, (char*)PhyMem, &openFrame);
-	
-/*	int i = 0;
-	for (i; i < PHYS_MEM_SIZE; i++)
-		printf("PhyMem[%d]=%d\n",i, PhyMem[0][i]);
-*/
-	pageFaultRate = (float)pageFaults / (float)inputCount;
-	TLBHitRate = (float)TLBhits / (float)inputCount;
-	printf("Page Fault Rate = %.4f\nTLB hit rate= %.4f\n",pageFaultRate, TLBHitRate);
-	close(fd);
+	pfRate = (float)pageFaults / (float)inputCount;
+	hitRate = (float)numHits / (float)inputCount;
+	printf("Page Fault Rate = %.4f\nTLB hit rate= %.4f\n",pfRate, hitRate);
 	return 0;
-
 }
+	
+
+
