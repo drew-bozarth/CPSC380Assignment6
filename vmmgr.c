@@ -9,6 +9,7 @@ const int pageTableSize = 256;
 const int physicalMemorySize = 256;
 const int bufferSize = 256;
 
+
 struct TLB {
 	unsigned char page[16];
 	unsigned char frame[16];
@@ -48,7 +49,16 @@ int findPage(int logicalAddress, struct TLB *tlb, char* pageTable, int* openFram
 	int val;
 	unsigned char mask = 0xFF;
 
+	FILE *outputFile = fopen("sampleOutput.txt", "a");
+	
+	if (outputFile == NULL)
+	{
+		printf("Could not open sample output file!\n");
+		exit(1);
+	}
+
 	printf("Logical adress: %d\t", logicalAddress);
+	fprintf(outputFile, "Logical adress: %d\t", logicalAddress);
 
 	pageNumber = (logicalAddress >> 8) & mask;
 	offset = logicalAddress & mask;
@@ -77,14 +87,21 @@ int findPage(int logicalAddress, struct TLB *tlb, char* pageTable, int* openFram
 	}
 	int index = ((unsigned char) oldFrame * physicalMemorySize) + offset;
 	val = *(physicalMemory + index);
-	printf("Physical address: %d\t Signed Byte Value: %d\n", index, val);	
+	printf("Physical address: %d\t Signed Byte Value: %d\n", index, val);
+	fprintf(outputFile, "Physical address: %d\t Signed Byte Value: %d\n", index, val);
+
+	fclose(outputFile);
+
 	return 0;
 }
 
 int main (int argc, char* argv[]){
 	int val;
 	FILE *fileOpen;
-	struct TLB tlb;	
+	struct TLB tlb;
+
+	
+
 
 	int numHits = 0;
 	int inputCount = 0;
@@ -119,6 +136,21 @@ int main (int argc, char* argv[]){
 	pfRate = (float)pageFaults / (float)inputCount;
 	hitRate = (float)numHits / (float)inputCount;
 	printf("Page Fault Rate = %.4f\nTLB hit rate= %.4f\n",pfRate, hitRate);
+
+	FILE *outputFile = fopen("sampleOutput.txt", "a");
+	
+	if (outputFile == NULL)
+	{
+		printf("Could not open sample output file!\n");
+		exit(1);
+	}
+
+	fprintf(outputFile, "Page Fault Rate = %.4f\nTLB hit rate= %.4f\n",pfRate, hitRate);
+
+	fclose(outputFile);
+
+
+	
 	return 0;
 }
 	
