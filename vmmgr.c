@@ -48,7 +48,7 @@ int findPage(int logicalAddress, struct TLB *tlb, char* pageTable, int* openFram
 	int val;
 	unsigned char mask = 0xFF;
 
-	printf("Virtual adress: %d\t", logicalAddress);
+	printf("Logical adress: %d\t", logicalAddress);
 
 	pageNumber = (logicalAddress >> 8) & mask;
 	offset = logicalAddress & mask;
@@ -77,7 +77,7 @@ int findPage(int logicalAddress, struct TLB *tlb, char* pageTable, int* openFram
 	}
 	int index = ((unsigned char) oldFrame * physicalMemorySize) + offset;
 	val = *(physicalMemory + index);
-	printf("Physical address: %d\t Value: %d\n", index, val);	
+	printf("Physical address: %d\t Signed Byte Value: %d\n", index, val);	
 	return 0;
 }
 

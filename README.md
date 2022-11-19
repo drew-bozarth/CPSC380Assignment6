@@ -17,6 +17,10 @@ by Drew Bozarth &amp; Romtin Rezvani
 
 ### vmmgr.c
 
+### addresses.txt
+
+### simpletest.txt
+
 ## Known Errors:
 
 ### on/a
@@ -29,5 +33,6 @@ by Drew Bozarth &amp; Romtin Rezvani
 
 Change directory into where ever the files are "cd \_\_\_\_"
 Check to make sure the files are there with "ls"
-Compile the program with gcc vmmgr.c -o vmmgr
-Run with ./vmmgr addresses.txt
+Compile the program with "gcc vmmgr.c -o vmmgr"
+Run Simple Program test with "./vmmgr simpletest.txt"
+Run Full Program with "./vmmgr addresses.txt"
