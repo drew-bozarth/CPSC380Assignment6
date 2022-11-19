@@ -23,11 +23,11 @@ by Drew Bozarth &amp; Romtin Rezvani
 
 ## References:
 
-### Class slides Chapters **\_\_**
+### Class slides Chapters 9 and 10
 
 ## Instructions:
 
 Change directory into where ever the files are "cd \_\_\_\_"
 Check to make sure the files are there with "ls"
-Compile the program with "**\*\*\*\***"
-Run with "\*\*\*\*"
+Compile the program with gcc vmmgr.c -o vmmgr
+Run with ./vmmgr addresses.txt

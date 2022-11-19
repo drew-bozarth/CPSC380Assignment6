@@ -15,8 +15,6 @@ struct TLB {
 	int index;
 };
 
-
-
 int readDisk(int pageNumber, int* openFrame, char *physicalMemory) {
 	char buffer[bufferSize];
 	memset(buffer, 0, sizeof(buffer));
